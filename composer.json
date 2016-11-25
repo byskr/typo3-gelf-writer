@@ -1,0 +1,17 @@
+{
+    "name": "tourstream/typo3-graylog-writer",
+    "description": "Write log directly to graylog",
+    "type": "typo3-cms-extension",
+    "license": "MIT",
+    "replace": {
+        "typo3_graylog_writer": "self.version"
+    },
+    "autoload": {
+        "psr-4": {
+            "FTI\\GrayLogWriter\\": "Classes/"
+        }
+    },
+    "require": {
+
+    }
+}
