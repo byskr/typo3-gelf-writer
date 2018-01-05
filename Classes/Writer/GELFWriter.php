@@ -1,6 +1,6 @@
 <?php
 
-namespace Byskr\Writer;
+namespace Byskr\Typo3GelfWriter\Writer;
 
 use TYPO3\CMS\Core\Log\Writer\AbstractWriter;
 use TYPO3\CMS\Core\Log\Writer\WriterInterface;
