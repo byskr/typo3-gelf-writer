@@ -4,11 +4,11 @@
     "type": "typo3-cms-extension",
     "license": "MIT",
     "replace": {
-        "typo3_graylog_writer": "self.version"
+        "typo3_gelf_writer": "self.version"
     },
     "autoload": {
         "psr-4": {
-            "FTI\\GrayLogWriter\\": "Classes/"
+            "Byskr\\Typo3GELFWriter\\": "Classes/"
         }
     },
     "require": {
