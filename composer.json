@@ -8,10 +8,10 @@
     },
     "autoload": {
         "psr-4": {
-            "Byskr\\Typo3GELFWriter\\": "Classes/"
+            "Byskr\\Typo3GelfWriter\\": "Classes/"
         }
     },
     "require": {
-
+        "graylog2/gelf-php": "^1.5"
     }
 }
