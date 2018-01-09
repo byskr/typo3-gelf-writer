@@ -37,16 +37,21 @@ class GelfWriter extends AbstractWriter implements WriterInterface
     /**
      * @var string
      */
-    protected $port;
+    protected $serverPort;
 
     /**
      * GelfWriter constructor.
      * @param $options
+     * @throws InvalidConfigurationException
      */
     public function __construct($options)
     {
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         parent::__construct($options);
+
+        if(empty($this->serverUrl) || empty($this->serverPort)) {
+            throw new InvalidConfigurationException('Configuration value is missing');
+        }
     }
 
     /**
@@ -57,7 +62,7 @@ class GelfWriter extends AbstractWriter implements WriterInterface
     public function writeLog(LogRecord $record)
     {
         /** @var $transport HttpTransport */
-        $transport = $this->objectManager->get(HttpTransport::class, $this->serverUrl, $this->port);
+        $transport = $this->objectManager->get(HttpTransport::class, $this->serverUrl, $this->serverPort);
         /** @var Publisher $publisher */
         $publisher = $this->objectManager->get(Publisher::class, $transport);
 
@@ -97,9 +102,9 @@ class GelfWriter extends AbstractWriter implements WriterInterface
      * @param string $serverUrl
      * @throws InvalidConfigurationException
      */
-    protected function setServer($serverUrl)
+    protected function setServerUrl($serverUrl)
     {
-        if (!filter_var($serverUrl, FILTER_VALIDATE_URL)) {
+        if (!is_string($serverUrl) || !filter_var('tcp://' . $serverUrl, FILTER_VALIDATE_URL, [FILTER_FLAG_SCHEME_REQUIRED])) {
             throw new InvalidConfigurationException('Invalid Server URL');
         }
 
@@ -110,12 +115,13 @@ class GelfWriter extends AbstractWriter implements WriterInterface
      * @param string $port
      * @throws InvalidConfigurationException
      */
-    protected function setPort($port)
+    protected function setServerPort($port)
     {
-        if (!filter_var(port, FILTER_VALIDATE_INT)) {
+
+        if (!filter_var($port, FILTER_VALIDATE_INT)) {
             throw new InvalidConfigurationException('Invalid Server Port');
         }
 
-        $this->port = $port;
+        $this->serverPort = $port;
     }
 }
