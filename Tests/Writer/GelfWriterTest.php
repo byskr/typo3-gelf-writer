@@ -197,6 +197,8 @@ class GelfWriterTest extends TestCase
 
         $this->obj->writeLog($logRecord->reveal());
 
+        $publisher->publish($logMessage)->shouldBeCalledTimes(1);
+
     }
 
 }
