@@ -2,7 +2,16 @@
 
 namespace Byskr\Typo3GelfWriter\Writer;
 
-class GelfWriterTest extends \PHPUnit_Framework_TestCase
+use Gelf\Message;
+use Gelf\Publisher;
+use Gelf\Transport\HttpTransport;
+use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\Prophet;
+use TYPO3\CMS\Core\Log\LogRecord;
+use TYPO3\CMS\Extbase\Object\ObjectManager;
+
+class GelfWriterTest extends TestCase
 {
     protected $obj;
 
@@ -13,6 +22,16 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
         parent::setUp();
 
         $this->obj = new GelfWriter($this->initOptions);
+
+        if (!array_key_exists('HTTP_HOST', $_SERVER)) {
+            $_SERVER['HTTP_HOST'] = 'meinTestServer';
+        }
+        if (!array_key_exists('REQUEST_URI', $_SERVER)) {
+            $_SERVER['REQUEST_URI'] = '/';
+        }
+        if (!array_key_exists('REQUEST_METHOD', $_SERVER)) {
+            $_SERVER['REQUEST_METHOD'] = 'GET';
+        }
     }
 
     /**
@@ -42,6 +61,14 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
         return $property->getValue($this->obj);
     }
 
+    protected function setProperty($propertyName, $value)
+    {
+        $class = new \ReflectionClass(GelfWriter::class);
+        $property = $class->getProperty($propertyName);
+        $property->setAccessible(true);
+        $property->setValue($this->obj, $value);
+    }
+
 
     public function testInit()
     {
@@ -50,16 +77,27 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Configuration value is missing
+     */
+    public function testInvalidConstructor()
+    {
+        new GelfWriter([]);
+    }
+
+    /**
      * @dataProvider setServerDataProvider
      * @param string $url
      */
-    public function testSetServerUrl($url) {
+    public function testSetServerUrl($url)
+    {
         $this->invokeMethod('setServerUrl', [$url]);
 
         $this->assertEquals($url, $this->getProperty('serverUrl'));
     }
 
-    public function setServerDataProvider() {
+    public function setServerDataProvider()
+    {
         return [
             ['123test.foo'],
             ['127.0.0.1'],
@@ -74,11 +112,13 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
      * @expectedExceptionMessage Invalid Server URL
      * @param string $url
      */
-    public function testSetServerUrlException($url) {
+    public function testSetServerUrlException($url)
+    {
         $this->invokeMethod('setServerUrl', [$url]);
     }
 
-    public function setServerWrongDataProvider() {
+    public function setServerWrongDataProvider()
+    {
         return [
             [''],
             [['foo']],
@@ -89,13 +129,15 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
      * @dataProvider setServerPortDataProvider
      * @param string $port
      */
-    public function testSetServerPort($port) {
+    public function testSetServerPort($port)
+    {
         $this->invokeMethod('setServerPort', [$port]);
 
         $this->assertEquals($port, $this->getProperty('serverPort'));
     }
 
-    public function setServerPortDataProvider() {
+    public function setServerPortDataProvider()
+    {
         return [
             [1],
             [1234]
@@ -108,11 +150,13 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
      * @expectedExceptionMessage Invalid Server Port
      * @param string $port
      */
-    public function testSetServerPortException($port) {
+    public function testSetServerPortException($port)
+    {
         $this->invokeMethod('setServerPort', [$port]);
     }
 
-    public function setServerPortWrongDataProvider() {
+    public function setServerPortWrongDataProvider()
+    {
         return [
             ['adf'],
             [['foo']],
@@ -120,7 +164,40 @@ class GelfWriterTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    public function testWriteLog() {
+    public function testWriteLog()
+    {
+        $transport = $this->prophesize(HttpTransport::class);
+        $publisher = $this->prophesize(Publisher::class);
+        $logMessage = $this->prophesize(Message::class);
+
+        $objectManager = $this->prophesize(ObjectManager::class);
+        $this->setProperty('objectManager', $objectManager->reveal());
+
+        $objectManager->get(HttpTransport::class, $this->initOptions['serverUrl'], $this->initOptions['serverPort'])
+            ->willReturn($transport->reveal());
+
+        $objectManager->get(Publisher::class, $transport)->willReturn($publisher->reveal());
+        $objectManager->get(Message::class)->willReturn($logMessage->reveal());
+
+        $logRecord = $this->prophesize(LogRecord::class);
+        $logRecord->getLevel()->willReturn(0);
+        $logRecord->getComponent()->willReturn('tx_myExt');
+        $logRecord->getMessage()->willReturn('Fatal-Fatal');
+        $logRecord->getData()->willReturn('myStacktrace');
+        $logRecord->getRequestId()->willReturn('1');
+
+        $logMessage->setVersion(GelfWriter::GELF_VERSION_STRING)->willReturn($logMessage);
+        $logMessage->setHost('meinTestServer' . ' - ' . php_uname('n'))->willReturn($logMessage);
+        $logMessage->setShortMessage('EMERGENCY - tx_myExt')->willReturn($logMessage);
+        $logMessage->setFullMessage('Fatal-Fatal'. PHP_EOL .'myStacktrace')->willReturn($logMessage);
+        $logMessage->setLevel('EMERGENCY')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestUrl', '/')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestMethod', 'GET')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestId', '1')->willReturn($logMessage);
+
+        $this->obj->writeLog($logRecord->reveal());
+
+        $publisher->publish($logMessage)->shouldBeCalledTimes(1);
 
     }
 
