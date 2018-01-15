@@ -77,6 +77,15 @@ class GelfWriterTest extends TestCase
     }
 
     /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Configuration value is missing
+     */
+    public function testInvalidConstructor()
+    {
+        new GelfWriter([]);
+    }
+
+    /**
      * @dataProvider setServerDataProvider
      * @param string $url
      */
@@ -155,15 +164,6 @@ class GelfWriterTest extends TestCase
         ];
     }
 
-    /**
-     * @expectedException \Exception
-     * @expectedExceptionMessage Configuration value is missing
-     */
-    public function testInvalidConstructor()
-    {
-        new GelfWriter([]);
-    }
-
     public function testWriteLog()
     {
         $transport = $this->prophesize(HttpTransport::class);
@@ -186,14 +186,14 @@ class GelfWriterTest extends TestCase
         $logRecord->getData()->willReturn('myStacktrace');
         $logRecord->getRequestId()->willReturn('1');
 
-        $logMessage->setVersion(GelfWriter::GELF_VERSION_STRING)->willReturn($logMessage->reveal());
-        $logMessage->setHost('meinTestServer' . ' - ' . php_uname('n'))->willReturn($logMessage->reveal());
-        $logMessage->setShortMessage('EMERGENCY - tx_myExt')->willReturn($logMessage->reveal());
-        $logMessage->setFullMessage('Fatal-Fatal'. PHP_EOL .'myStacktrace')->willReturn($logMessage->reveal());
-        $logMessage->setLevel('EMERGENCY')->willReturn($logMessage->reveal());
-        $logMessage->setAdditional('RequestUrl', '/')->willReturn($logMessage->reveal());
-        $logMessage->setAdditional('RequestMethod', 'GET')->willReturn($logMessage->reveal());
-        $logMessage->setAdditional('RequestId', '1')->willReturn($logMessage->reveal());
+        $logMessage->setVersion(GelfWriter::GELF_VERSION_STRING)->willReturn($logMessage);
+        $logMessage->setHost('meinTestServer' . ' - ' . php_uname('n'))->willReturn($logMessage);
+        $logMessage->setShortMessage('EMERGENCY - tx_myExt')->willReturn($logMessage);
+        $logMessage->setFullMessage('Fatal-Fatal'. PHP_EOL .'myStacktrace')->willReturn($logMessage);
+        $logMessage->setLevel('EMERGENCY')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestUrl', '/')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestMethod', 'GET')->willReturn($logMessage);
+        $logMessage->setAdditional('RequestId', '1')->willReturn($logMessage);
 
         $this->obj->writeLog($logRecord->reveal());
 
