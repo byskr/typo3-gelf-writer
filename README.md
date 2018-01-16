@@ -11,7 +11,10 @@ and http://docs.graylog.org/en/2.3/pages/gelf.html
         \TYPO3\CMS\Core\Log\LogLevel::ERROR => [
             'Byskr\Typo3GelfWriter\Writer\GelfWriter' => [
                 'serverUrl' => 'your-greylog-tcp-address'
-                'serverPort' => 12345
+                'serverPort' => 12345,
+                'additionalData' => [
+                    'key': 'value'
+                ]
             ]
         ]
     ];

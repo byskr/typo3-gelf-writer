@@ -164,6 +164,54 @@ class GelfWriterTest extends TestCase
         ];
     }
 
+    public function testSetAdditionalData()
+    {
+        $data = ['value1' => true, 'value2' => [], 'value3' => 'abc123'];
+
+        $this->invokeMethod('setAdditionalData', [$data]);
+
+        $data['value2'] = 'Array\n(\n)\n';
+        $this->assertFalse(empty($this->getProperty('additionalData')));
+    }
+
+    /**
+     * @dataProvider setAdditionalDataWrongDataProvider
+     * @expectedException \Exception
+     * @expectedExceptionMessage Additional Data must be an array
+     * @param string $data
+     */
+    public function testSetAdditionalDataException($data)
+    {
+        $this->invokeMethod('setAdditionalData', [$data]);
+    }
+
+    public function setAdditionalDataWrongDataProvider()
+    {
+        return [
+            ['adf'],
+            [1213]
+        ];
+    }
+
+    /**
+     * @dataProvider setAdditionalDataWrongDataIndexProvider
+     * @expectedException \Exception
+     * @expectedExceptionMessage Additional Data key must be a string
+     * @param string $data
+     */
+    public function testSetAdditionalDataExceptionIndex($data)
+    {
+        $this->invokeMethod('setAdditionalData', [$data]);
+    }
+
+    public function setAdditionalDataWrongDataIndexProvider()
+    {
+        return [
+            [['adf']],
+            [[1213]]
+        ];
+    }
+
     public function testWriteLog()
     {
         $transport = $this->prophesize(HttpTransport::class);
@@ -174,7 +222,7 @@ class GelfWriterTest extends TestCase
         $this->setProperty('objectManager', $objectManager->reveal());
 
         $objectManager->get(HttpTransport::class, $this->initOptions['serverUrl'], $this->initOptions['serverPort'])
-            ->willReturn($transport->reveal());
+                      ->willReturn($transport->reveal());
 
         $objectManager->get(Publisher::class, $transport)->willReturn($publisher->reveal());
         $objectManager->get(Message::class)->willReturn($logMessage->reveal());

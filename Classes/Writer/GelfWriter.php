@@ -40,6 +40,11 @@ class GelfWriter extends AbstractWriter implements WriterInterface
     protected $serverPort;
 
     /**
+     * @var array
+     */
+    protected $additionalData = [];
+
+    /**
      * GelfWriter constructor.
      * @param $options
      * @throws InvalidConfigurationException
@@ -49,7 +54,7 @@ class GelfWriter extends AbstractWriter implements WriterInterface
         $this->objectManager = GeneralUtility::makeInstance(ObjectManager::class);
         parent::__construct($options);
 
-        if(empty($this->serverUrl) || empty($this->serverPort)) {
+        if (empty($this->serverUrl) || empty($this->serverPort)) {
             throw new InvalidConfigurationException('Configuration value is missing');
         }
     }
@@ -82,6 +87,8 @@ class GelfWriter extends AbstractWriter implements WriterInterface
         $logLevel = LogLevel::getName($record->getLevel());
         $shortMessageText = $logLevel . ' - ' . $record->getComponent();
         $messageText = $record->getMessage() . PHP_EOL . print_r($record->getData(), 1);
+        $this->additionalData['RequestUrl'] = $_SERVER['REQUEST_URI'];
+        $this->additionalData['RequestMethod'] = $_SERVER['REQUEST_METHOD'];
 
         /** @var Message $logMessage */
         $logMessage = $this->objectManager->get(Message::class);
@@ -91,9 +98,11 @@ class GelfWriter extends AbstractWriter implements WriterInterface
             ->setShortMessage($shortMessageText)
             ->setFullMessage($messageText)
             ->setLevel($logLevel)
-            ->setAdditional('RequestUrl', $_SERVER['REQUEST_URI'])
-            ->setAdditional('RequestMethod', $_SERVER['REQUEST_METHOD'])
             ->setAdditional('RequestId', $record->getRequestId());
+
+        foreach ($this->additionalData as $key => $value){
+            $logMessage->setAdditional($key, $value);
+        }
 
         return $logMessage;
     }
@@ -123,5 +132,28 @@ class GelfWriter extends AbstractWriter implements WriterInterface
         }
 
         $this->serverPort = $port;
+    }
+
+    /**
+     * @param $additionalData
+     * @throws InvalidConfigurationException
+     */
+    protected function setAdditionalData($additionalData)
+    {
+        if (!is_array($additionalData)) {
+            throw new InvalidConfigurationException('Additional Data must be an array');
+        }
+
+        foreach ($additionalData as $key => $value) {
+            if (!is_string($key)) {
+                throw new InvalidConfigurationException('Additional Data key must be a string');
+            }
+
+            if (!is_string($value)) {
+                $value = print_r($value, 1);
+            }
+
+            $this->additionalData[$key] = $value;
+        }
     }
 }
